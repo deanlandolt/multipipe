@@ -1,6 +1,7 @@
 var assert = require('assert');
 var pipe = require('..');
 var Stream = require('stream');
+var through2 = require('through2');
 
 describe('pipe(a)', function(){
   it('should return a', function(){
@@ -102,14 +103,72 @@ describe('pipe(a, b, c, fn)', function(){
     var c = Writable();
     var err = new Error;
 
-    pipe(a, b, c, function(err){
-      assert(err);
+    pipe(a, b, c, function(err_){
+      assert(err_ === err);
       done();
     });
 
     a.emit('error', err);
     b.emit('error', err);
     c.emit('error', err);
+  });
+
+  it('should call with error on destroy w/ error', function(done){
+    var a = Readable();
+    var b = Transform();
+    var c = through2(); // destroyable
+    var err = new Error;
+
+    pipe(a, b, c, function(err_){
+      assert(err_ === err);
+      done();
+    });
+
+    c.destroy(err);
+  });
+
+  it('should call with error on destroy w/o error', function(done){
+    var a = Readable();
+    var b = Transform();
+    var c = through2(); // destroyable
+    var err = new Error;
+
+    pipe(a, b, c, function(err_){
+      // TODO: emit 'stream closed' error on close w/o finish or error?
+      assert(err_ !== err);
+      done();
+    });
+
+    c.destroy();
+  });
+
+  it('should call with error on through destroy w/ error', function(done){
+    var a = Readable();
+    var b = through2();
+    var c = Writable();
+    var err = new Error;
+
+    pipe(a, b, c, function(err_){
+      assert(err_ === err);
+      done();
+    });
+
+    b.destroy(err);
+  });
+
+  it('should call with error on through destroy w/o error', function(done){
+    var a = Readable();
+    var b = through2();
+    var c = Writable();
+    var err = new Error;
+
+    pipe(a, b, c, function(err_){
+      // TODO: emit 'stream closed' error on close w/o finish or error?
+      assert(err_ !== err);
+      done();
+    });
+
+    b.destroy();
   });
 });
 
